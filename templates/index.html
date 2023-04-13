@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Excel File from Google Drive</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-OgVRvuATP1z7JjHLkuOU6Xw704+h835Lr+6QL9UvYjZE2LIZPs/2rnF7OQ6eDfXy" crossorigin="anonymous">
+    <style>
+        .card {
+            margin-top: 50px;
+        }
+        
+        .card-header {
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                Upload Excel File from Google Drive
+            </div>
+            <div class="card-body">
+                <p>Authorize the app to access your Google Drive:</p>
+                <div id="gdrive-btn" class="g-signin2" data-onsuccess="onSignIn"></div>
+                <div id="file-list" style="display: none;">
+                    <form action="/" method="post" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="file-select">Select Excel file:</label>
+                            <select class="form-control" id="file-select" name="file">
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Google API library -->
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script>
+        // Client ID and API key from the Developer Console
+        const CLIENT_ID = '18630754994-jijfr36066o1p0tkriahck3548u2mtct.apps.googleusercontent.com';
+        const API_KEY = 'AIzaSyB8HjdYj2fALCsMSBqgjyoR9j6HKWzPQVg';
+
+        // Array of API discovery doc URLs for APIs used by the quickstart
+        const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
+
+        // Authorization scopes required by the API; multiple scopes can be
+        // included, separated by spaces.
+        const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
+
+        /**
+         *  On load, called to load the auth2 library and API client library.
+         */
+        function handleClientLoad() {
+            gapi.load('client:auth2', initClient);
+        }
+
+        /**
+         *  Initializes the API client library and sets up sign-in state
+         *  listeners.
+         */
+        function initClient() {
+            gapi.client.init({
+                apiKey: API_KEY,
+                clientId: CLIENT_ID,
+                discoveryDocs: DISCOVERY_DOCS,
+                scope: SCOPES,
+            }).then(() => {
+                // Listen for sign-in state changes.
+                gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+
+                // Handle the initial sign-in state.
+                updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+                authorizeButton.onclick = handleAuthClick;
+            }, (error) => {
+                console.error(JSON.stringify(error, null, 2));
+            });
+        }
+
+        /**
+         *  Called when the signed in status changes, to update the UI
+         *  appropriately. After a sign-in, the API is called.
+         */
+        function updateSigninStatus(isSignedIn) {
+            const authStatus = document.getElementById('auth-status');
+            const authorizeButton = document.getElementById('authorize-button');
+            const contentTable = document.getElementById('content-table');
+            const fileList = document.getElementById('file-list');
+            let downloadLink;
+
+            if (isSignedIn) {
+                authStatus.innerHTML = 'You are signed in.';
+                authorizeButton.style.display = 'none';
+                contentTable.style.display = 'block';
+                gapi.client.drive.files.list({
+                    q: "mimeType='application/vnd.ms-excel'",
+                    pageSize: 10,
+                    fields: 'nextPageToken, files(id, name)',
+                }).then((response) => {
+                    fileList.innerHTML = '';
+                    const files = response.result.files;
+                    if (files.length > 0) {
+                        for (let i = 0; i < files.length; i += 1) {
+                            const file = files[i];
+                            const tr = document.createElement('tr');
+                            const tdFileName = document.createElement('td');
+                            const tdDownload = document.createElement('td');
+
+                            tdFileName.appendChild(document.createTextNode(file.name));
+                            tr.appendChild(tdFileName);
+
+                            const downloadUrl = `https://drive.google.com/uc?export=download&id=${file.id}`;
+                            tdDownload.innerHTML = `<a href="${downloadUrl}" target="_blank">Download</a>`;
+                            tr.appendChild(tdDownload);
+
+                            fileList.appendChild(tr);
+                        }
+                    } else {
+                        fileList.innerHTML = '<p>No files found.</p>';
+                    }
+                });
+            } else {
+                authStatus.innerHTML = 'You are not signed in.';
+                authorizeButton.style.display = 'block';
+                contentTable.style.display = 'none';
+                fileList.innerHTML = '';
+            }
+        }
+
+        /**
+         *  Sign in the user upon button click.
+         */
+        function handleAuthClick(event) {
+            gapi.auth2.getAuthInstance().signIn();
+        }
+    </script>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Dashboard</title>
+    <!-- Add atoti.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/atoti/js/atoti.min.js"></script>
+    <style>
+        /* Add custom styling for your dashboard */
+    </style>
+</head>
+<body>
+    <div id="dashboard-container"></div>
+    <script>
+        // Create atoti.js session and load dashboard
+        var session = atoti.createSession();
+        session.loadAsync().then(function() {
+            var dashboard = session.getDashboard("My Dashboard");
+            dashboard.bindTo("#dashboard-container");
+        });
+    </script>
+</body>
+</html>
